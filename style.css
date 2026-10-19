@@ -1,0 +1,18 @@
+.plugin-vishram .card { padding: 22px; }
+.vishram-clock { font-family: "JetBrainsMono Nerd Font"; color: @overlay1; font-size: 13px; }
+button.vishram-btn { padding: 16px 6px 12px 6px; border-radius: 16px; background: alpha(white, 0.05);
+  border: 1px solid alpha(white, 0.07); box-shadow: none; color: @text; }
+button.vishram-btn:hover, button.vishram-btn:focus-visible { background: alpha(white, 0.10); outline: none;
+  border-color: alpha(#cba6f7, 0.5); }
+.vishram-icon { font-family: "JetBrainsMono Nerd Font"; font-size: 26px; }
+.vishram-label { font-weight: 600; font-size: 12.5px; }
+.vishram-key { font-family: "JetBrainsMono Nerd Font"; font-size: 11px; color: @overlay1;
+  background: alpha(white, 0.07); border-radius: 6px; padding: 1px 7px; }
+.v-blue .vishram-icon { color: @blue; } .v-teal .vishram-icon { color: @teal; }
+.v-yellow .vishram-icon { color: @yellow; } .v-peach .vishram-icon { color: @peach; }
+.v-red .vishram-icon { color: @red; }
+.vishram-banner { padding: 10px 12px; border-radius: 12px; background: alpha(@peach, 0.10);
+  border: 1px solid alpha(@peach, 0.28); }
+.vishram-banner-icon { font-family: "JetBrainsMono Nerd Font"; color: @peach; font-size: 16px; }
+.vishram-foot { margin: 0 -22px -22px -22px; padding: 9px 22px; border-top: 1px solid alpha(white, 0.06);
+  background: alpha(#11111b, 0.25); border-radius: 0 0 20px 20px; }
