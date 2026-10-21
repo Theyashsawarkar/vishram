@@ -1,0 +1,8 @@
+# The project website (docs/, GitHub Pages): built by scripts/build-site.py
+name = "vishram"
+sanskrit = "विश्राम"
+meaning = "rest"
+tagline = "Power menu: lock, suspend, log out, reboot, power off; one letter each, a 5-second countdown with cancel for the final ones."
+color = "red"
+kind = "a Vyom tool"
+logo = "assets/logo.svg"
