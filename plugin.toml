@@ -1,7 +1,7 @@
 name = "vishram"
 title = "Power"
 description = "Power menu: lock, suspend, log out, reboot, power off; one letter each, a 5-second countdown with cancel for the final ones."
-version = "0.1.0"
+version = "0.1.1"
 vyom = "0.2.6"
 icon = "⏻"
 color = "red"
