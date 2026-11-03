@@ -6,6 +6,15 @@
   </picture>
 </p>
 
+<!-- identity -->
+<p align="center">
+  <b>युक्ताहारविहारस्य युक्तचेष्टस्य कर्मसु ।<br>
+  युक्तस्वप्नावबोधस्य योगो भवति दुःखहा ॥</b><br>
+  <i>For one measured in food, play, work, sleep and waking, yoga ends sorrow.</i><br>
+  <sub>Bhagavad Gītā 6.17</sub>
+</p>
+<!-- /identity -->
+
 <p align="center">
   <b>Power menu: lock, suspend, log out, reboot, power off; one letter each, a 5-second countdown with cancel for the final ones.</b><br>
   The power menu. A tool for <a href="https://github.com/Theyashsawarkar/vyom">Vyom</a>, keyboard-driven panels for Wayland.

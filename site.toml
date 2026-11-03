@@ -6,3 +6,6 @@ tagline = "Power menu: lock, suspend, log out, reboot, power off; one letter eac
 color = "red"
 kind = "a Vyom tool"
 logo = "assets/logo.svg"
+shloka = "युक्ताहारविहारस्य युक्तचेष्टस्य कर्मसु ।\nयुक्तस्वप्नावबोधस्य योगो भवति दुःखहा ॥"
+shloka_meaning = "For one measured in food, play, work, sleep and waking, yoga ends sorrow."
+shloka_source = "Bhagavad Gītā 6.17"
