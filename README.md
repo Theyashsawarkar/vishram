@@ -98,7 +98,7 @@ Open it with `vyom vishram` (or your key). Type to search; the footer always sho
 | `Esc (counting down)` | Cancel the countdown |
 | `Esc` | Close the panel |
 
-Every Vyom panel also has `Up`/`Down` (or `Ctrl+K`/`Ctrl+J`) to move, `Page Up`/`Page Down` to jump and `Tab` to switch to the next tool.
+Every Vyom panel also has `Up`/`Down` (or `Ctrl+K`/`Ctrl+J`) to move and `Page Up`/`Page Down` to jump. Each tool opens from its own key.
 
 ## Configuration
 
