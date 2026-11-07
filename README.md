@@ -24,7 +24,7 @@
   <a href="https://github.com/Theyashsawarkar/vishram/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Theyashsawarkar/vishram/actions/workflows/ci.yml/badge.svg"></a>
   <a href="https://github.com/Theyashsawarkar/vishram/releases"><img alt="Release" src="https://img.shields.io/github/v/release/Theyashsawarkar/vishram?color=cba6f7&label=release"></a>
   <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-f5e0dc"></a>
-  <a href="https://github.com/Theyashsawarkar/vyom"><img alt="Vyom 0.2.6+" src="https://img.shields.io/badge/vyom-0.2.6%2B-89b4fa"></a>
+  <a href="https://github.com/Theyashsawarkar/vyom"><img alt="Vyom 0.6.0+" src="https://img.shields.io/badge/vyom-0.6.0%2B-89b4fa"></a>
   <img alt="Python 3.11+" src="https://img.shields.io/badge/python-3.11%2B-a6e3a1">
   <img alt="Wayland" src="https://img.shields.io/badge/wayland-layer--shell-94e2d5">
 </p>
@@ -50,17 +50,17 @@ vishram is the power menu for [Vyom](https://github.com/Theyashsawarkar/vyom): o
 
 ## Features
 
-- Lock, suspend, log out, reboot and power off, **one letter each** (`L S E R P`).
-- Log out, reboot and power off **count down 5 seconds first** (Esc cancels, Enter does it now), showing how many windows are still open.
+- Lock, suspend, log out, reboot and power off as **big tiles, one letter each** (`L S E R P`): the safe ones (lock, suspend) apart from the final ones (log out, reboot, power off). Arrows and `Enter` work too, with an accent frame on the tile you're on.
+- Log out, reboot and power off **count down 5 seconds first**: the tile's icon becomes a red **ring that fills**, with a red notice ("Powering off in 3 s"). **Any key cancels**; `Enter` does it now.
+- **Warns about unsaved work** on sway: windows whose titles say they have unsaved changes (`*notes.txt`, `● main.py`, `[+]`, "unsaved", "(modified)") are named in the notice; otherwise it says how many windows will be closed. Apps that don't mark their titles (LibreOffice, for one) can't be seen this way.
 - Log out works on sway, Hyprland and niri out of the box (else `loginctl terminate-session`).
 - Keyboard first: every action has a key, shown in the footer; the mouse works too.
-- Never freezes the panel: slow commands run in the background.
 
 ## Install
 
 ### Requirements
 
-- [Vyom](https://github.com/Theyashsawarkar/vyom) 0.2.6 or newer (Python 3.11+, PyGObject, GTK 4, [gtk4-layer-shell](https://github.com/wmww/gtk4-layer-shell), a Nerd Font)
+- [Vyom](https://github.com/Theyashsawarkar/vyom) 0.6.0 or newer (Python 3.11+, PyGObject, GTK 4, [gtk4-layer-shell](https://github.com/wmww/gtk4-layer-shell), a Nerd Font)
 
 ### Install
 
@@ -85,7 +85,7 @@ rm -rf ~/.local/share/vyom/plugins/vishram && vyom reload          # uninstall
 
 ## Usage
 
-Open it with `vyom vishram` (or your key). Type to search; the footer always shows the keys for what's selected.
+Open it with `vyom vishram` (or your key). The footer always shows the keys.
 
 | Key | Action |
 |---|---|
@@ -94,7 +94,10 @@ Open it with `vyom vishram` (or your key). Type to search; the footer always sho
 | `E` | Log out (after a 5-second countdown) |
 | `R` | Reboot (after a 5-second countdown) |
 | `P` | Power off (after a 5-second countdown) |
-| `Enter (counting down)` | Do it now instead of waiting |
+| `Arrows` | Move between the actions |
+| `Enter` | Pick the selected action |
+| `Enter (counting down)` | Confirm the action now instead of waiting |
+| `Any key (counting down)` | Cancel the countdown |
 | `Esc (counting down)` | Cancel the countdown |
 | `Esc` | Close the panel |
 

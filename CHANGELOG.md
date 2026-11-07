@@ -2,8 +2,15 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
-## Unreleased
+## v0.2.0 -- 2026-11-07
 
+- **Big tiles, one letter each**, the safe ones (Lock, Suspend) apart from the final ones (Log out, Reboot, Power off); arrows and Enter work, with an accent frame on the tile you're on.
+- **The countdown is a red ring that fills** in the chosen tile, with a red notice: "Powering off in 3 s", a Cancel button and a Now button.
+- **Any key cancels the countdown** (Enter still does it now).
+- **Warns about unsaved work** on sway: windows whose titles say so ("*notes.txt", "● main.py") are named; otherwise it says how many windows will be closed.
+- The panel no longer changes size when a countdown starts or stops.
+- The greeting header is gone: the tiles are the card.
+- Needs Vyom 0.6.0.
 - Every corner is rounded: the website's callouts.
 - A logo and a shloka at the top of the README and the website: every Vayu tool has them now.
 

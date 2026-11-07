@@ -1,18 +1,30 @@
 .plugin-vishram .card { padding: 22px; }
-.vishram-clock { font-family: "JetBrainsMono Nerd Font"; color: @overlay1; font-size: 13px; }
-button.vishram-btn { padding: 16px 6px 12px 6px; border-radius: 16px; background: alpha(white, 0.05);
-  border: 1px solid alpha(white, 0.07); box-shadow: none; color: @text; }
-button.vishram-btn:hover, button.vishram-btn:focus-visible { background: alpha(white, 0.10); outline: none;
-  border-color: alpha(@accent, 0.5); }
-.vishram-icon { font-family: "JetBrainsMono Nerd Font"; font-size: 26px; }
-.vishram-label { font-weight: 600; font-size: 12.5px; }
-.vishram-key { font-family: "JetBrainsMono Nerd Font"; font-size: 11px; color: @overlay1;
-  background: alpha(white, 0.07); border-radius: 6px; padding: 1px 7px; }
-.v-blue .vishram-icon { color: @blue; } .v-teal .vishram-icon { color: @teal; }
+/* Big tiles, one letter each; the icon in its colour. */
+button.vishram-btn { padding: 16px 6px 14px 6px; border-radius: 16px; background: alpha(white, 0.045);
+  border: 1px solid alpha(white, 0.08); box-shadow: none; color: @text; outline: none; }
+button.vishram-btn:hover { background: alpha(white, 0.09); }
+/* Where you are: an accent frame you can't miss. */
+button.vishram-btn.sel { outline: 2px solid @accent; outline-offset: 1px; background: alpha(@accent, 0.08); }
+/* The final ones: a quiet red edge says they can't be undone. */
+button.vishram-btn.final { border-color: alpha(@red, 0.16); }
+/* Counting down: red, and it fills. */
+button.vishram-btn.counting { background: alpha(@red, 0.14); border-color: alpha(@red, 0.55); }
+button.vishram-btn.counting.sel { outline-color: @red; }
+.vishram-icon { font-family: "JetBrainsMono Nerd Font"; font-size: 32px; }
+.vishram-label { font-weight: 650; font-size: 13.5px; }
+.vishram-count { font-weight: 800; font-size: 18px; color: @red; }
+.v-blue .vishram-icon { color: @blue; } .v-mauve .vishram-icon { color: @mauve; }
 .v-yellow .vishram-icon { color: @yellow; } .v-peach .vishram-icon { color: @peach; }
 .v-red .vishram-icon { color: @red; }
-.vishram-banner { padding: 10px 12px; border-radius: 12px; background: alpha(@peach, 0.10);
-  border: 1px solid alpha(@peach, 0.28); }
-.vishram-banner-icon { font-family: "JetBrainsMono Nerd Font"; color: @peach; font-size: 16px; }
+/* The countdown notice: red, it says what will happen and when. */
+.vishram-notice { padding: 12px 14px; border-radius: 14px; background: alpha(@red, 0.09);
+  border: 1px solid alpha(@red, 0.5); }
+.vishram-n-icon { color: @red; font-size: 20px; }
+.vishram-n-title { color: @red; font-weight: 750; font-size: 15px; }
+.vishram-n-text { color: @subtext0; font-size: 12.5px; }
 .vishram-foot { margin: 0 -22px -22px -22px; padding: 9px 22px; border-top: 1px solid alpha(white, 0.06);
   background: alpha(@crust, 0.25); border-radius: 0 0 20px 20px; }
+.vishram-idle { padding: 12px 14px; border-radius: 14px; background: alpha(white, 0.03);
+  border: 1px solid alpha(white, 0.06); min-height: 34px; }
+.vishram-idle-icon { color: @overlay1; font-size: 16px; }
+.vishram-idle-text { color: @overlay2; font-size: 12.5px; }

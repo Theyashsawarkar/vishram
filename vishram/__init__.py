@@ -1,11 +1,13 @@
 """vishram (विश्राम, "rest"): the power menu for Vyom.
 
-Lock, suspend, log out, reboot and power off, one letter each. Log out,
-reboot and power off wait 5 seconds with a countdown first (Esc cancels,
-Enter does it now), and the header says how many windows are still open.
+Lock, suspend, log out, reboot and power off, one letter each, as big
+tiles: the safe ones (lock, suspend) apart from the final ones. Log out,
+reboot and power off count down first (a ring that fills, in red; any key
+cancels, Enter does it now) and warn about windows that look unsaved.
 """
 import json
 import os
+import re
 import shutil
 
 from gi.repository import GLib, Gtk
@@ -18,7 +20,10 @@ from vyom import ui, util
 # keybind: Vyom/power | E | Log out (after a 5-second countdown)
 # keybind: Vyom/power | R | Reboot (after a 5-second countdown)
 # keybind: Vyom/power | P | Power off (after a 5-second countdown)
-# keybind: Vyom/power | Enter (counting down) | Do it now instead of waiting
+# keybind: Vyom/power | Arrows | Move between the actions
+# keybind: Vyom/power | Enter | Pick the selected action
+# keybind: Vyom/power | Enter (counting down) | Confirm the action now instead of waiting
+# keybind: Vyom/power | Any key (counting down) | Cancel the countdown
 # keybind: Vyom/power | Esc (counting down) | Cancel the countdown
 
 
@@ -32,34 +37,57 @@ def default_logout():
     return "loginctl terminate-session ${XDG_SESSION_ID:-self}"
 
 
-ACTIONS = [  # key, letter, label, icon, color, countdown
-    ("lock", "L", "Lock", "\U000f033e", "blue", False),
-    ("suspend", "S", "Suspend", "\U000f04b2", "teal", False),
-    ("logout", "E", "Log out", "\U000f0343", "yellow", True),
-    ("reboot", "R", "Reboot", "\U000f0709", "peach", True),
-    ("poweroff", "P", "Power off", "\U000f0425", "red", True),
+ACTIONS = [  # key, letter, label, icon, color, countdown, "… in N s"
+    ("lock", "L", "Lock", "\U000f033e", "blue", False, ""),
+    ("suspend", "S", "Suspend", "\U000f04b2", "mauve", False, ""),
+    ("logout", "E", "Log out", "\U000f0343", "yellow", True, "Logging out"),
+    ("reboot", "R", "Reboot", "\U000f0709", "peach", True, "Rebooting"),
+    ("poweroff", "P", "Power off", "\U000f0425", "red", True, "Powering off"),
 ]
+STEP = 100   # ms between redraws of the countdown ring
+# Keys that only modify another: pressing them alone doesn't cancel.
+MODIFIERS = re.compile(r"^(Shift|Control|Alt|Super|Meta|Hyper|ISO_Level\d)_?[LR]?$|_Lock$")
+# A window title that says it has unsaved changes: "*notes.txt - gedit",
+# "● main.py - Code", "file [+] - NVIM", "Untitled (modified)", "… unsaved …".
+UNSAVED = re.compile(r"^\s*[*●•]|[*●•]\s*$|\[\+\]|\(modified\)|\bunsaved\b", re.I)
 
 
-def window_count():
+def pretty_app(node):
+    app = node.get("app_id") or (node.get("window_properties") or {}).get("class") or ""
+    app = app.split(".")[-1] if "." in app else app       # dev.zed.Zed -> Zed
+    app = re.sub(r"^libreoffice-?\w*$", "LibreOffice", app, flags=re.I)
+    return app[:1].upper() + app[1:] if app else (node.get("name") or "a window")[:24]
+
+
+def windows():
+    """[(app, title)] of every open window on sway, or None when we can't
+    tell (not sway): one `swaymsg -t get_tree`, cheap."""
     if not shutil.which("swaymsg"):
         return None
     code, out = util.run(["swaymsg", "-t", "get_tree"], timeout=2)
     if code:
         return None
-    n = 0
+    found = []
 
     def walk(node):
-        nonlocal n
         if node.get("type") in ("con", "floating_con") and node.get("pid"):
-            n += 1
+            found.append((pretty_app(node), node.get("name") or ""))
         for c in node.get("nodes", []) + node.get("floating_nodes", []):
             walk(c)
     try:
         walk(json.loads(out))
-    except ValueError:
+    except (ValueError, AttributeError):
         return None
-    return n
+    return found
+
+
+def unsaved(wins):
+    """The apps whose window titles say they have unsaved work (once each)."""
+    apps = []
+    for app, title in wins or []:
+        if UNSAVED.search(title) and app not in apps:
+            apps.append(app)
+    return apps
 
 
 class Plugin(Base):
@@ -71,7 +99,8 @@ class Plugin(Base):
         super().__init__(vyom, conf)
         self.timer = None
         self.pending = None
-        self.left = 0
+        self.left_ms = self.total_ms = 0
+        self.wins = None
 
     def command(self, key):
         defaults = {"lock": "loginctl lock-session", "suspend": "systemctl suspend", "logout": default_logout(),
@@ -80,81 +109,166 @@ class Plugin(Base):
 
     def build_card(self):
         self.cancel()
-        import time
-        h = time.localtime().tm_hour
-        hello = "Good morning" if h < 12 else "Good afternoon" if h < 17 else "Good evening"
-        try:
-            up = float(open("/proc/uptime").read().split()[0])
-            upt = f"up {int(up // 3600)} h {int(up % 3600 // 60)} min"
-        except OSError:
-            upt = ""
-        n = window_count()
-        sub = " · ".join(x for x in (upt, f"{n} window{'s' if n != 1 else ''} open" if n else "") if x)
-        user = os.environ.get("USER", "").capitalize()
-        head = ui.hbox(ui.vbox(ui.label(f"{hello}{', ' + user if user else ''}", "card-title", xalign=0),
-                               ui.label(sub, "card-sub", xalign=0), spacing=2, cls=None),
-                       ui.label(time.strftime("%H:%M"), "vishram-clock", hexpand=True, halign=Gtk.Align.END),
-                       spacing=10)
-        grid = Gtk.Box(spacing=10, homogeneous=True)
-        self.buttons = {}
-        for key, letter, label, icon, color, _ in ACTIONS:
-            b = Gtk.Button()
+        # One row: the safe ones (lock, suspend), a gap, the final ones. Every
+        # tile asks for the same width, so the spare space is shared equally.
+        row = Gtk.Box(spacing=10)
+        row.add_css_class("vishram-tiles")
+        self.buttons, self.icons = {}, {}
+        for key, letter, label, icon, color, counts, _ in ACTIONS:
+            b = Gtk.Button(hexpand=True, width_request=112)
             b.add_css_class("vishram-btn")
             b.add_css_class(f"v-{color}")
-            inner = ui.vbox(ui.label(icon, "vishram-icon"), ui.label(label, "vishram-label"),
-                            ui.label(letter, "vishram-key"), spacing=6)
-            b.set_child(inner)
+            if counts:
+                b.add_css_class("final")
+            holder = Gtk.Box(halign=Gtk.Align.CENTER, height_request=54)
+            holder.append(ui.label(icon, "vishram-icon", valign=Gtk.Align.CENTER))
+            self.icons[key] = holder
+            cap = ui.keycap(letter)
+            cap.set_halign(Gtk.Align.CENTER)
+            b.set_child(ui.vbox(holder, ui.label(label, "vishram-label"), cap, spacing=8))
+            b.set_tooltip_text(f"{label} ({letter})" + (": counts down first" if counts else ""))
             b.connect("clicked", lambda _b, k=key: self.choose(k))
             self.buttons[key] = b
-            grid.append(b)
-        self.banner = ui.hbox(ui.label("\U000f0709", "vishram-banner-icon"), ui.label("", "vishram-banner-text",
-                                                                                     hexpand=True, xalign=0),
-                              ui.button("Cancel  Esc", self.cancel), spacing=10, cls="vishram-banner")
-        self.banner_text = self.banner.get_first_child().get_next_sibling()
-        self.banner.set_visible(False)
+            if key == "logout":
+                row.append(Gtk.Box(width_request=8))   # the gap between safe and final
+            row.append(b)
+
+        # The notice line is always there (a quiet note until a countdown), so
+        # the panel never changes size under you.
+        self.notice = Gtk.Box()
+        self.show_idle()
         esc = ui.hint_label("Esc", "close")
         esc.set_hexpand(True)
         esc.set_halign(Gtk.Align.END)
-        foot = ui.hbox(*(ui.hint_label(k, w) for k, w in (("L", "lock"), ("S", "suspend"), ("E", "log out"),
-                                                          ("R", "reboot"), ("P", "power off"))),
-                       esc, spacing=14, cls="vishram-foot")
-        card = ui.vbox(head, grid, self.banner, foot, spacing=16, cls="card")
-        GLib.idle_add(lambda: (self.buttons["lock"].grab_focus(), False)[1])
+        self.foot = ui.hbox(ui.hint_label("L S E R P", "choose"), ui.hint_label("Arrows", "move"),
+                            ui.hint_label("Enter", "choose selected"), esc, spacing=14, cls="vishram-foot")
+        card = ui.vbox(row, self.notice, self.foot, spacing=18, cls="card")
+        GLib.idle_add(self.first_focus)
         return card
 
+    def first_focus(self):
+        self.buttons["lock"].grab_focus()
+        # Where you are, drawn by us (a layer-shell panel isn't always an
+        # "active" window, so GTK's :focus can't be relied on).
+        if self.panel is not None and getattr(self, "watched_panel", None) is not self.panel:
+            self.watched_panel = self.panel
+            self.panel.connect("notify::focus-widget", lambda *_: self.mark_focus())
+        self.mark_focus()
+        return False
+
+    def mark_focus(self):
+        focus = self.panel.get_focus() if self.panel is not None else None
+        for b in getattr(self, "buttons", {}).values():
+            (b.add_css_class if b is focus else b.remove_css_class)("sel")
+
+    # ---------------------------------------------------------- countdown
     def choose(self, key):
         spec = next(a for a in ACTIONS if a[0] == key)
         if not spec[5]:
             self.run(key)
             return
-        self.pending, self.left = key, int(self.conf.get("countdown", 5))
-        self.banner.set_visible(True)
-        self.tick()
-        if self.timer:
-            GLib.source_remove(self.timer)
-        self.timer = GLib.timeout_add_seconds(1, self.tick)
+        self.cancel()
+        self.pending = key
+        self.total_ms = self.left_ms = int(float(self.conf.get("countdown", 5)) * 1000)
+        self.wins = None
+        self.background(windows, then=self.got_windows)
+        self.buttons[key].add_css_class("counting")
+        self.buttons[key].grab_focus()
+        self.show_notice()
+        self.draw_ring()
+        self.timer = GLib.timeout_add(STEP, self.tick)
+
+    def got_windows(self, wins):
+        if self.pending and not isinstance(wins, Exception):
+            self.wins = wins
+            self.show_notice()
+
+    def secs(self):
+        return max(1, -(-self.left_ms // 1000))   # rounded up: 5 4 3 2 1
+
+    def show_notice(self):
+        spec = next(a for a in ACTIONS if a[0] == self.pending)
+        old = self.notice.get_first_child()
+        if old is not None:
+            self.notice.remove(old)
+        title = ui.label(f"{spec[6]} in {self.secs()} s", "vishram-n-title", xalign=0)
+        self.n_title = title
+        text = ui.vbox(title, spacing=3, cls=None)
+        text.set_hexpand(True)
+        lost = unsaved(self.wins)
+        if lost:
+            n = len(lost)
+            warn = ui.hbox(ui.label("\U000f0026", "glyph", "t-yellow"),
+                           ui.label(f"{n} window{'s' if n != 1 else ''} may have unsaved work: {', '.join(lost)}",
+                                    "vishram-n-text", xalign=0, wrap=True), spacing=6)
+            text.append(warn)
+        elif self.wins:
+            n = len(self.wins)
+            text.append(ui.label(f"{n} window{'s' if n != 1 else ''} open: "
+                                 f"{'they' if n != 1 else 'it'} will be closed", "vishram-n-text", xalign=0))
+        cancel = ui.button("Cancel", self.cancel, key="any key")
+        now = ui.button("Now", self.now, "danger", key="Enter")
+        box = ui.hbox(ui.label(spec[3], "glyph", "vishram-n-icon", valign=Gtk.Align.START), text,
+                      ui.hbox(now, cancel, spacing=8), spacing=12, cls="vishram-notice")
+        box.get_last_child().set_valign(Gtk.Align.CENTER)
+        self.notice.append(box)
+        box.set_hexpand(True)
+        self.notice.set_visible(True)
+
+    def show_idle(self):
+        old = self.notice.get_first_child()
+        if old is not None:
+            self.notice.remove(old)
+        n = int(float(self.conf.get("countdown", 5)))
+        box = ui.hbox(ui.label("\U000f02fc", "glyph", "vishram-idle-icon"),
+                      ui.label(f"Lock and suspend act at once. Log out, reboot and power off wait {n} s first: "
+                               "any key cancels.", "vishram-idle-text", xalign=0, wrap=True, hexpand=True),
+                      spacing=10, cls="vishram-idle")
+        self.notice.append(box)
+        box.set_hexpand(True)
+
+    def draw_ring(self):
+        holder = self.icons[self.pending]
+        old = holder.get_first_child()
+        if old is not None:
+            holder.remove(old)
+        done = 1 - self.left_ms / self.total_ms if self.total_ms else 1
+        holder.append(ui.ring(max(0.02, done), "red", 52, 5, ui.label(str(self.secs()), "vishram-count")))
 
     def tick(self):
         if not self.pending:
             return False
-        if self.left <= 0:
+        self.left_ms -= STEP
+        if self.left_ms <= 0:
             key = self.pending
+            self.timer = None
             self.cancel()
             self.run(key)
             return False
-        label = next(a[2] for a in ACTIONS if a[0] == self.pending)
-        n = window_count()
-        extra = f" · {n} window{'s' if n != 1 else ''} still open" if n else ""
-        self.banner_text.set_label(f"{label} in {self.left}…{extra}")
-        self.left -= 1
+        self.draw_ring()
+        self.n_title.set_label(f"{next(a[6] for a in ACTIONS if a[0] == self.pending)} in {self.secs()} s")
         return True
+
+    def now(self):
+        key = self.pending
+        if key:
+            self.cancel()
+            self.run(key)
 
     def cancel(self):
         if self.timer:
             GLib.source_remove(self.timer)
-        self.timer, self.pending = None, None
-        if hasattr(self, "banner"):
-            self.banner.set_visible(False)
+        key, self.timer, self.pending = self.pending, None, None
+        if key and hasattr(self, "icons"):
+            spec = next(a for a in ACTIONS if a[0] == key)
+            holder = self.icons[key]
+            old = holder.get_first_child()
+            if old is not None:
+                holder.remove(old)
+            holder.append(ui.label(spec[3], "vishram-icon", valign=Gtk.Align.CENTER))
+            self.buttons[key].remove_css_class("counting")
+        if hasattr(self, "notice"):
+            self.show_idle()
 
     def run(self, key):
         self.close()
@@ -166,15 +280,13 @@ class Plugin(Base):
 
     def key(self, name, row, mods):
         if self.pending:
-            if name == "Escape":
-                self.cancel()
-                return True
             if name in ("Return", "KP_Enter"):
-                key = self.pending
-                self.cancel()
-                self.run(key)
+                self.now()
                 return True
-            return False
+            if MODIFIERS.search(name):
+                return False
+            self.cancel()          # any other key, Esc included, cancels (and does nothing else)
+            return True
         letters = {a[1].lower(): a[0] for a in ACTIONS}
         if not mods and name.lower() in letters:
             self.choose(letters[name.lower()])
