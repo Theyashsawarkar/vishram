@@ -2,6 +2,26 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## v0.3.0 -- 2026-11-09
+
+- Where you are on the menu is drawn by Vyom core (`vk-cursor`) instead of vishram's own focus watcher; the look (red while counting down) is the same.
+- **No more accidental lock or reboot.** `Space` no longer presses the
+  focused tile (Lock had the focus, so `Space` locked the screen); `l` no
+  longer locks and `r` no longer reboots. Lock has the focus when the menu
+  opens, so `Enter` locks; **reboot is `b`** (re**b**oot). `r` and `L` say
+  where they went, for one release.
+- **Vim keys** (Vyom 0.7): always NORMAL (there's nothing to type);
+  `h` / `l`, `j` / `k`, `gg` / `G` move between the tiles and `Enter` picks
+  one, `s` / `e` / `b` / `p` choose directly, `Space` is the leader
+  (`Space ?` lists every key, `q` closes).
+- While a countdown runs, `Enter` does it now and any other key, `Space`
+  included, cancels it. **Fixed**: a countdown started by a click while a key was half-typed (`Space`, a count) let the next key finish that key instead of cancelling; the countdown now drops it (through Vyom's `wants_all_keys()`, so an open palette, help or confirm is dropped too).
+- The tiles' keycaps are lowercase, like the keys (they said `L S E R P`,
+  but Shift never worked); Vyom's footer shows the keys.
+- Keys are data (`vishram/vim.py`); `scripts/keybinds.py` writes the
+  `# keybind:` lines and the README table from it (`--check` in CI).
+- Needs Vyom 0.7.0.
+
 ## v0.2.0 -- 2026-11-07
 
 - **Big tiles, one letter each**, the safe ones (Lock, Suspend) apart from the final ones (Log out, Reboot, Power off); arrows and Enter work, with an accent frame on the tile you're on.

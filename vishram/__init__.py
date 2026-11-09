@@ -13,18 +13,19 @@ import shutil
 from gi.repository import GLib, Gtk
 
 from vyom import Plugin as Base
-from vyom import ui, util
+from vyom import Hint, ui, util
 
-# keybind: Vyom/power | L | Lock the screen
-# keybind: Vyom/power | S | Suspend
-# keybind: Vyom/power | E | Log out (after a 5-second countdown)
-# keybind: Vyom/power | R | Reboot (after a 5-second countdown)
-# keybind: Vyom/power | P | Power off (after a 5-second countdown)
-# keybind: Vyom/power | Arrows | Move between the actions
-# keybind: Vyom/power | Enter | Pick the selected action
-# keybind: Vyom/power | Enter (counting down) | Confirm the action now instead of waiting
-# keybind: Vyom/power | Any key (counting down) | Cancel the countdown
-# keybind: Vyom/power | Esc (counting down) | Cancel the countdown
+from . import vim
+
+# KEYBINDS (generated from vishram/vim.py by scripts/keybinds.py; don't edit by hand)
+# keybind: Vyom/power:normal | s | Suspend
+# keybind: Vyom/power:normal | e | Log out (after a 5-second countdown)
+# keybind: Vyom/power:normal | b | Reboot (after a 5-second countdown)
+# keybind: Vyom/power:normal | p | Power off (after a 5-second countdown)
+# keybind: Vyom/power:normal | Enter | Pick the focused action (Lock has the focus when the menu opens)
+# keybind: Vyom/power countdown | Enter | Confirm the action now instead of waiting
+# keybind: Vyom/power countdown | Esc | Cancel the countdown (any other key does too, Space included)
+# END KEYBINDS
 
 
 def default_logout():
@@ -38,11 +39,11 @@ def default_logout():
 
 
 ACTIONS = [  # key, letter, label, icon, color, countdown, "… in N s"
-    ("lock", "L", "Lock", "\U000f033e", "blue", False, ""),
-    ("suspend", "S", "Suspend", "\U000f04b2", "mauve", False, ""),
-    ("logout", "E", "Log out", "\U000f0343", "yellow", True, "Logging out"),
-    ("reboot", "R", "Reboot", "\U000f0709", "peach", True, "Rebooting"),
-    ("poweroff", "P", "Power off", "\U000f0425", "red", True, "Powering off"),
+    ("lock", "Enter", "Lock", "\U000f033e", "blue", False, ""),
+    ("suspend", "s", "Suspend", "\U000f04b2", "mauve", False, ""),
+    ("logout", "e", "Log out", "\U000f0343", "yellow", True, "Logging out"),
+    ("reboot", "b", "Reboot", "\U000f0709", "peach", True, "Rebooting"),
+    ("poweroff", "p", "Power off", "\U000f0425", "red", True, "Powering off"),
 ]
 STEP = 100   # ms between redraws of the countdown ring
 # Keys that only modify another: pressing them alone doesn't cancel.
@@ -94,6 +95,9 @@ class Plugin(Base):
     name, title, icon, color = "vishram", "Power", "⏻", "red"
     layout = "card"
     width = 600
+    modal = True                # vim keys (Vyom 0.7): always NORMAL; the card cursor moves between tiles
+    start_mode = "normal"
+    hints = [Hint("s e b p", "choose"), Hint("h / l", "move"), Hint("Enter", "pick (Lock first)")]
 
     def __init__(self, vyom, conf):
         super().__init__(vyom, conf)
@@ -126,7 +130,8 @@ class Plugin(Base):
             cap = ui.keycap(letter)
             cap.set_halign(Gtk.Align.CENTER)
             b.set_child(ui.vbox(holder, ui.label(label, "vishram-label"), cap, spacing=8))
-            b.set_tooltip_text(f"{label} ({letter})" + (": counts down first" if counts else ""))
+            b.set_tooltip_text(f"{label} ({letter}" + (", it has the focus" if key == "lock" else "") + ")"
+                               + (": counts down first" if counts else ""))
             b.connect("clicked", lambda _b, k=key: self.choose(k))
             self.buttons[key] = b
             if key == "logout":
@@ -137,29 +142,16 @@ class Plugin(Base):
         # the panel never changes size under you.
         self.notice = Gtk.Box()
         self.show_idle()
-        esc = ui.hint_label("Esc", "close")
-        esc.set_hexpand(True)
-        esc.set_halign(Gtk.Align.END)
-        self.foot = ui.hbox(ui.hint_label("L S E R P", "choose"), ui.hint_label("Arrows", "move"),
-                            ui.hint_label("Enter", "choose selected"), esc, spacing=14, cls="vishram-foot")
-        card = ui.vbox(row, self.notice, self.foot, spacing=18, cls="card")
+        # The keys are in Vyom's footer (a modal card has one).
+        card = ui.vbox(row, self.notice, spacing=18, cls="card")
         GLib.idle_add(self.first_focus)
         return card
 
     def first_focus(self):
+        # Lock first. Vyom core draws where you are (vk-cursor; GTK's own
+        # :focus doesn't show in a layer-shell panel).
         self.buttons["lock"].grab_focus()
-        # Where you are, drawn by us (a layer-shell panel isn't always an
-        # "active" window, so GTK's :focus can't be relied on).
-        if self.panel is not None and getattr(self, "watched_panel", None) is not self.panel:
-            self.watched_panel = self.panel
-            self.panel.connect("notify::focus-widget", lambda *_: self.mark_focus())
-        self.mark_focus()
         return False
-
-    def mark_focus(self):
-        focus = self.panel.get_focus() if self.panel is not None else None
-        for b in getattr(self, "buttons", {}).values():
-            (b.add_css_class if b is focus else b.remove_css_class)("sel")
 
     # ---------------------------------------------------------- countdown
     def choose(self, key):
@@ -168,7 +160,7 @@ class Plugin(Base):
             self.run(key)
             return
         self.cancel()
-        self.pending = key
+        self.pending = key   # wants_all_keys(): from now on every key reaches key() first
         self.total_ms = self.left_ms = int(float(self.conf.get("countdown", 5)) * 1000)
         self.wins = None
         self.background(windows, then=self.got_windows)
@@ -278,17 +270,26 @@ class Plugin(Base):
     def closed(self):
         self.cancel()
 
+    def wants_all_keys(self):
+        # During a countdown Vyom drops a half-typed key (Space, a count, an
+        # open palette) and gives the next key to key(), so it cancels.
+        return bool(self.pending)
+
     def key(self, name, row, mods):
+        # A countdown: Enter does it now; any other key (Space and Esc too) cancels and does nothing else.
         if self.pending:
             if name in ("Return", "KP_Enter"):
                 self.now()
                 return True
             if MODIFIERS.search(name):
                 return False
-            self.cancel()          # any other key, Esc included, cancels (and does nothing else)
-            return True
-        letters = {a[1].lower(): a[0] for a in ACTIONS}
-        if not mods and name.lower() in letters:
-            self.choose(letters[name.lower()])
+            self.cancel()
             return True
         return False
+
+    # ------------------------------------------------------------ vim keys
+    def keys(self, tab):
+        return vim.keys(tab)
+
+    def v_choose(self, _n, key):
+        self.choose(key)
