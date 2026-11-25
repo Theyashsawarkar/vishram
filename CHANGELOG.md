@@ -2,6 +2,11 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
+## Unreleased
+
+- **Spatial look**: big glass buttons with 24 px corners, a light rim where you are, rounder notices.
+- The website has Vayu's Spatial look: graphite glass, a floating navigation bar, near-white for links and the main button, and the tool's own colour only as its signature (the logo's glow, the shloka's line, the release dots). No more all-caps labels.
+
 ## v0.3.0 -- 2026-11-09
 
 - Where you are on the menu is drawn by Vyom core (`vk-cursor`) instead of vishram's own focus watcher; the look (red while counting down) is the same.
