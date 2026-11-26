@@ -30,7 +30,7 @@
 </p>
 
 <p align="center">
-  <img alt="vishram: power panel" src="assets/screenshots/vishram.png" width="100%">
+  <img alt="vishram: Lock, Suspend, Log out, Reboot and Power off as tiles, each with its key; log out, reboot and power off wait 5 seconds first" src="assets/screenshots/vishram.webp" width="100%">
 </p>
 
 > *Vishram* (विश्राम) is Sanskrit for "rest": the rest at the end of a session: lock, suspend, power off.
