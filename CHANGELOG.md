@@ -2,7 +2,7 @@
 
 Newest first. Releases are tags (`vX.Y.Z`).
 
-## Unreleased
+## v0.4.0 -- 2026-11-28
 
 - **A countdown you can't see stops** (Vyom 0.13, ADR 17): Vyom now keeps panels open per workspace and side by side, hiding one when you leave its workspace or another panel takes the centre. If that happens during a countdown, it stops, as any key would; the power menu itself stays open for when you come back (`parked()`).
 - Website: pranali joins the family list in the footer; the site builder passes ruff.
