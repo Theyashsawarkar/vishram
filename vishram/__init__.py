@@ -270,6 +270,12 @@ class Plugin(Base):
     def closed(self):
         self.cancel()
 
+    def parked(self):
+        """Vyom 0.13 (ADR 17): the panel hid but stays open (you left its
+        workspace, or another panel took the centre). A countdown you
+        can't see must not log you out: it stops, as any key stops it."""
+        self.cancel()
+
     def wants_all_keys(self):
         # During a countdown Vyom drops a half-typed key (Space, a count, an
         # open palette) and gives the next key to key(), so it cancels.

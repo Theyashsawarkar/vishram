@@ -4,6 +4,7 @@ Newest first. Releases are tags (`vX.Y.Z`).
 
 ## Unreleased
 
+- **A countdown you can't see stops** (Vyom 0.13, ADR 17): Vyom now keeps panels open per workspace and side by side, hiding one when you leave its workspace or another panel takes the centre. If that happens during a countdown, it stops, as any key would; the power menu itself stays open for when you come back (`parked()`).
 - Website: pranali joins the family list in the footer; the site builder passes ruff.
 - New screenshots in the Spatial look, taken with made-up demo data (WebP, sharp on high-density screens).
 - The website, closer to Vayu's own: the tool's screenshot blurred behind the page, a centred hero with the logo and the verse, the page you're on as the white pill, glass "On this page" and footer panels, releases as cards. No glow behind the logo, no coloured line beside the verse.
